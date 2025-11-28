@@ -2,8 +2,9 @@
  * F1 Simulator - Standard Types
  * author : Aysha Shaban Galal
  * Date: Nov 2025
+ * Basic data types for all modules
  *===========================================================================*/
- 
+
 #ifndef STD_TYPES_H_
 #define STD_TYPES_H_
 
@@ -21,6 +22,11 @@ typedef enum {
 } Std_ReturnType;
 
 typedef enum {
+    FALSE = 0,
+    TRUE = 1
+} boolean;
+
+#endif
     FALSE = 0,
     TRUE = 1
 } boolean;
