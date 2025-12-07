@@ -1,29 +1,28 @@
-/*============================================================================
- * L298N Dual Motor Driver
- * author : Aysha Shaban Galal
- * Date: Nov 2025
- * Motor 0: Steering, Motor 1: Drive
- *===========================================================================*/
+/*
+ * Motor.h - DC Motor Driver using L298N
+ * Single motor for rear wheels
+ * IN1: PB0, IN2: PB1, EN: PWM_MOTOR (OC1A/PD5)
+ */
 
 #ifndef MOTOR_H_
 #define MOTOR_H_
 
-#include "../Config/Std_Types.h"
+#include <stdint.h>
 
-typedef enum {
-    MOTOR_STEER = 0,
-    MOTOR_DRIVE = 1
-} Motor_IDType;
+// Motor direction
+#define MOTOR_FORWARD  1
+#define MOTOR_BACKWARD 2
+#define MOTOR_STOP     0
 
-typedef enum {
-    DIRECTION_STOP = 0,
-    DIRECTION_FORWARD,
-    DIRECTION_BACKWARD
-} Motor_DirectionType;
+// Speed range: 0-100%
+#define MOTOR_SPEED_MIN 0
+#define MOTOR_SPEED_MAX 100
 
-Std_ReturnType Motor_Init(void);
-Std_ReturnType Motor_SetDirection(Motor_IDType Motor, Motor_DirectionType Dir);
-Std_ReturnType Motor_SetSpeed(Motor_IDType Motor, uint16_t SpeedPercent);
-Std_ReturnType Motor_Stop(Motor_IDType Motor);
+// Function prototypes
+void Motor_Init(void);
+void Motor_SetSpeed(uint8_t speed);
+void Motor_SetDirection(uint8_t direction);
+void Motor_Stop(void);
+void Motor_Drive(uint8_t direction, uint8_t speed);
 
-#endif
+#endif /* MOTOR_H_ */
