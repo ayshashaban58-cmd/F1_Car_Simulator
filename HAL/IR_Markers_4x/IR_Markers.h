@@ -1,31 +1,30 @@
-/*============================================================================
- * 4 IR Markers Detection
- * author : Aysha Shaban Galal
- * Date: Nov 2025
- * Pattern matching for 4 strategic markers
- *===========================================================================*/
+/*
+ * IR_Markers.h - IR Sensor Array for Marker Detection
+ * 4 IR sensors on PA0-PA3 for black line detection
+ * Returns marker ID when detected
+ */
 
 #ifndef IR_MARKERS_H_
 #define IR_MARKERS_H_
 
-#include "../Config/Std_Types.h"
-#include "../../Config/Markers_Cfg.h"
+#include <stdint.h>
 
-typedef enum {
-    NO_MARKER = 0,
-    MARKER_1, MARKER_2, 
-    MARKER_3, MARKER_4
-} Detected_Marker_t;
+// Marker detection status
+#define MARKER_NOT_DETECTED 0
+#define MARKER_DETECTED     1
 
+// IR sensor readings (0 = white, 1 = black)
 typedef struct {
-    uint8_t S1, S2, S3, S4;
-    Detected_Marker_t ID;
-    float32_t Confidence;
-    uint32_t Timestamp;
-} IR_Marker_t;
+    uint8_t sensor[4];  // 4 IR sensors
+    uint8_t detected;   // Marker detected flag
+    uint8_t marker_id;  // Current marker ID (1-4)
+} IR_Markers_Data_t;
 
-Std_ReturnType IR_Markers_Init(void);
-Detected_Marker_t IR_Markers_Scan(IR_Marker_t* Marker);
-boolean IR_Marker_Detected(void);
+// Function prototypes
+void IR_Markers_Init(void);
+void IR_Markers_Scan(void);
+IR_Markers_Data_t* IR_Markers_GetData(void);
+uint8_t IR_Markers_IsDetected(void);
+void IR_Markers_ClearDetection(void);
 
-#endif
+#endif /* IR_MARKERS_H_ */
