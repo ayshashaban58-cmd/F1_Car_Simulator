@@ -1,70 +1,34 @@
-/*============================================================================
- * L298N Motor Driver Implementation
- * author : Aysha Shaban Galal
- * Date: Nov 2025
- * Steering: Motor 0, Drive: Motor 1
- *===========================================================================*/
+/*
+ * Dio.h - Digital Input/Output Driver
+ * ATmega32 Pin Control
+ */
 
-#include "Motor.h"
-#include "../../MCAL/Dio/Dio.h"
-#include "../../MCAL/Timer/Timer.h"
-#include "../../Config/Dio_Cfg.h"
+#ifndef DIO_H_
+#define DIO_H_
 
-Std_ReturnType Motor_Init(void) {
-    // Initialize motor direction pins
-    Dio_WriteChannel(MOTOR_DIR_IN1, STD_LOW);
-    Dio_WriteChannel(MOTOR_DIR_IN2, STD_LOW);
-    Dio_WriteChannel(MOTOR_DRV_IN1, STD_LOW);
-    Dio_WriteChannel(MOTOR_DRV_IN2, STD_LOW);
-    
-    // Stop motors
-    Timer_SetPWM(0, 0);  // Steering PWM
-    Timer_SetPWM(1, 0);  // Drive PWM
-    
-    return E_OK;
-}
+#include <stdint.h>
 
-Std_ReturnType Motor_SetDirection(Motor_IDType Motor, Motor_DirectionType Dir) {
-    switch(Motor) {
-        case MOTOR_STEER:
-            if(Dir == DIRECTION_FORWARD) {
-                Dio_WriteChannel(MOTOR_DIR_IN1, STD_HIGH);
-                Dio_WriteChannel(MOTOR_DIR_IN2, STD_LOW);
-            } else if(Dir == DIRECTION_BACKWARD) {
-                Dio_WriteChannel(MOTOR_DIR_IN1, STD_LOW);
-                Dio_WriteChannel(MOTOR_DIR_IN2, STD_HIGH);
-            } else {
-                Dio_WriteChannel(MOTOR_DIR_IN1, STD_LOW);
-                Dio_WriteChannel(MOTOR_DIR_IN2, STD_LOW);
-            }
-            break;
-            
-        case MOTOR_DRIVE:
-            if(Dir == DIRECTION_FORWARD) {
-                Dio_WriteChannel(MOTOR_DRV_IN1, STD_HIGH);
-                Dio_WriteChannel(MOTOR_DRV_IN2, STD_LOW);
-            } else if(Dir == DIRECTION_BACKWARD) {
-                Dio_WriteChannel(MOTOR_DRV_IN1, STD_LOW);
-                Dio_WriteChannel(MOTOR_DRV_IN2, STD_HIGH);
-            } else {
-                Dio_WriteChannel(MOTOR_DRV_IN1, STD_LOW);
-                Dio_WriteChannel(MOTOR_DRV_IN2, STD_LOW);
-            }
-            break;
-    }
-    return E_OK;
-}
+// Port definitions
+#define PORTA_REG 0
+#define PORTB_REG 1
+#define PORTC_REG 2
+#define PORTD_REG 3
 
-Std_ReturnType Motor_SetSpeed(Motor_IDType Motor, uint16_t SpeedPercent) {
-    uint16_t Duty = (SpeedPercent * 10);  // 0-100% → 0-1000
-    if(Duty > 1000) Duty = 1000;
-    
-    Timer_SetPWM(Motor, Duty);
-    return E_OK;
-}
+// Pin direction
+#define DIO_INPUT  0
+#define DIO_OUTPUT 1
 
-Std_ReturnType Motor_Stop(Motor_IDType Motor) {
-    Motor_SetDirection(Motor, DIRECTION_STOP);
-    Timer_SetPWM(Motor, 0);
-    return E_OK;
-}
+// Pin state
+#define DIO_LOW  0
+#define DIO_HIGH 1
+
+// Function prototypes
+void Dio_Init(void);
+void Dio_SetPinDirection(uint8_t port, uint8_t pin, uint8_t direction);
+void Dio_WritePin(uint8_t port, uint8_t pin, uint8_t value);
+uint8_t Dio_ReadPin(uint8_t port, uint8_t pin);
+void Dio_TogglePin(uint8_t port, uint8_t pin);
+void Dio_WritePort(uint8_t port, uint8_t value);
+uint8_t Dio_ReadPort(uint8_t port);
+
+#endif /* DIO_H_ */
