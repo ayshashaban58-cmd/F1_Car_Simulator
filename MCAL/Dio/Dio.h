@@ -1,22 +1,34 @@
-/*============================================================================
- * DIO Driver - Digital I/O Control
- * author : Aysha Shaban Galal
- * Date: Nov 2025
- * Controls motors, IR sensors, encoder, LED
- *===========================================================================*/
+/*
+ * Dio.h - Digital Input/Output Driver
+ * ATmega32 Pin Control
+ */
 
 #ifndef DIO_H_
 #define DIO_H_
 
-#include "../Config/Std_Types.h"
-#include "../Config/Dio_Cfg.h"
+#include <stdint.h>
 
-typedef enum { STD_LOW=0, STD_HIGH=1 } Dio_LevelType;
-typedef enum { INPUT=0, OUTPUT=1 } Dio_DirectionType;
+// Port definitions
+#define PORTA_REG 0
+#define PORTB_REG 1
+#define PORTC_REG 2
+#define PORTD_REG 3
 
-Std_ReturnType Dio_Init(void);
-Std_ReturnType Dio_WriteChannel(uint8_t Channel, Dio_LevelType Level);
-Std_ReturnType Dio_ReadChannel(uint8_t Channel, Dio_LevelType* Level);
-Std_ReturnType Dio_ToggleChannel(uint8_t Channel);
+// Pin direction
+#define DIO_INPUT  0
+#define DIO_OUTPUT 1
 
-#endif
+// Pin state
+#define DIO_LOW  0
+#define DIO_HIGH 1
+
+// Function prototypes
+void Dio_Init(void);
+void Dio_SetPinDirection(uint8_t port, uint8_t pin, uint8_t direction);
+void Dio_WritePin(uint8_t port, uint8_t pin, uint8_t value);
+uint8_t Dio_ReadPin(uint8_t port, uint8_t pin);
+void Dio_TogglePin(uint8_t port, uint8_t pin);
+void Dio_WritePort(uint8_t port, uint8_t value);
+uint8_t Dio_ReadPort(uint8_t port);
+
+#endif /* DIO_H_ */
