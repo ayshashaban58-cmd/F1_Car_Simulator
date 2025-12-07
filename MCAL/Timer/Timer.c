@@ -1,41 +1,50 @@
-/*============================================================================
- * Timer Implementation
- * author : Aysha Shaban Galal
- * Date: Nov 2025
- * TC0: PWM Motors, TC2: 100Hz Tick
- *===========================================================================*/
+/*
+ * Timer.c - Timer Driver Implementation
+ */
 
 #include "Timer.h"
-#include <avr32/io.h>
+#include <avr/io.h>
+#include <avr/interrupt.h>
 
-static volatile uint32_t SystemTick = 0;
+extern volatile uint32_t system_ticks;
 
-__attribute__((__interrupt__))
-static void TC2_IRQ(void) {
-    SystemTick++;
-    avr32_tc2.icr = 1;
-}
-
-Std_ReturnType Timer_Init(void) {
-    // PWM: 20kHz (50MHz / 1000 / 50us)
-    avr32_tc0.rc0 = 1000;
-    avr32_tc0.ra0 = 500;  // 50% initial
-    avr32_tc0.ier = 1;
-    avr32_tc0.ccr0 = 5;   // Enable
+void Timer_Init(void) {
+    // Timer0: CTC mode for 100Hz system tick
+    // F_CPU = 8MHz, Prescaler = 1024
+    // OCR0 = (8000000 / (1024 * 100)) - 1 = 77
+    TCCR0 = (1 << WGM01) | (1 << CS02) | (1 << CS00); // CTC, prescaler 1024
+    OCR0 = 77;
+    TIMSK |= (1 << OCIE0); // Enable compare match interrupt
     
-    // System Tick: 100Hz (10ms)
-    avr32_tc2.rc2 = 500000;
-    avr32_tc2.ier = 1;
-    avr32_tc2.ccr2 = 5;
+    // Timer1: Fast PWM mode, 10-bit
+    // Non-inverting mode for both OC1A and OC1B
+    // Prescaler = 8, PWM frequency = 8MHz/(8*1024) = ~977Hz
+    TCCR1A = (1 << COM1A1) | (1 << COM1B1) | (1 << WGM11); // Non-inverting, Fast PWM 10-bit
+    TCCR1B = (1 << WGM12) | (1 << CS11); // Fast PWM 10-bit, prescaler 8
+    ICR1 = 1023; // 10-bit resolution
     
-    return E_OK;
+    // Initialize PWM outputs to 0
+    OCR1A = 0; // Motor
+    OCR1B = 0; // Servo
+    
+    // Set PWM pins as output
+    DDRD |= (1 << PD5) | (1 << PD4); // OC1A and OC1B
 }
 
-Std_ReturnType Timer_SetPWM(uint8_t Channel, PWM_DutyType Duty) {
-    if(Duty > 1000) Duty = 1000;
-    if(Channel == 0) avr32_tc0.ra0 = Duty;  // Steering
-    else avr32_tc0.rb0 = Duty;              // Drive
-    return E_OK;
+void Timer_SetPWM(uint8_t channel, uint16_t duty) {
+    // Limit duty cycle to 10-bit (0-1023)
+    if(duty > 1023) duty = 1023;
+    
+    switch(channel) {
+        case PWM_MOTOR:
+            OCR1A = duty;
+            break;
+        case PWM_SERVO:
+            OCR1B = duty;
+            break;
+    }
 }
 
-uint32_t Timer_GetTick(void) { return SystemTick; }
+uint32_t Timer_GetTicks(void) {
+    return system_ticks;
+}
