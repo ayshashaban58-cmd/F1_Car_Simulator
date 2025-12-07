@@ -1,31 +1,32 @@
-/*============================================================================
- * PID Controller Service
- * author : Aysha Shaban Galal
- * Date: Nov 2025
- * Speed + Steering control at 100Hz
- *===========================================================================*/
+/*
+ * PID.h - PID Controller for Steering
+ * Maintains straight line using IMU gyro feedback
+ */
 
 #ifndef PID_H_
 #define PID_H_
 
-#include "../Config/Std_Types.h"
+#include <stdint.h>
 
+// PID parameters structure
 typedef struct {
-    float32_t Kp, Ki, Kd;
-    float32_t Setpoint;
-    float32_t OutputMin, OutputMax;
-    float32_t Integral;
-    float32_t PrevError;
-    float32_t Dt;
-    boolean Enabled;
+    float kp;
+    float ki;
+    float kd;
+    float error;
+    float last_error;
+    float integral;
+    float derivative;
+    float output;
+    float setpoint;
 } PID_Controller_t;
 
-extern PID_Controller_t SpeedPID;
-extern PID_Controller_t SteeringPID;
+// Function prototypes
+void PID_Init(void);
+void PID_Update(void);
+void PID_Reset(void);
+void PID_SetGains(float kp, float ki, float kd);
+void PID_SetSetpoint(float setpoint);
+float PID_GetOutput(void);
 
-void PID_Init(PID_Controller_t* pid, float32_t kp, float32_t ki, float32_t kd, 
-              float32_t min_out, float32_t max_out);
-float32_t PID_Update(PID_Controller_t* pid, float32_t measurement);
-void PID_Reset(PID_Controller_t* pid);
-
-#endif
+#endif /* PID_H_ */
