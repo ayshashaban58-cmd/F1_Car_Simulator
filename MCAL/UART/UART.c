@@ -1,44 +1,84 @@
-/*============================================================================
- * UART Implementation
- * author : Aysha Shaban Galal
- * Date: Nov 2025
- * UART0 for ESP32 communication
- *===========================================================================*/
+/*
+ * UART.c - UART Driver Implementation
+ */
 
 #include "UART.h"
-#include <avr32/io.h>
+#include <avr/io.h>
+#include <avr/interrupt.h>
 
-Std_ReturnType UART_Init(uint32_t BaudRate) {
-    // 115200 baud @ 50MHz
-    avr32_usart0.mr = 0x000C0000;        // Normal mode
-    avr32_usart0.brgr = 135;             // Baud rate
-    avr32_usart0.cr = 0x00000040;        // RX/TX enable
-    avr32_usart0.ier = 0x00000020;       // RX interrupt
-    return E_OK;
-}
+// Circular buffer for receiving
+static volatile uint8_t rx_buffer[UART_BUFFER_SIZE];
+static volatile uint8_t rx_head = 0;
+static volatile uint8_t rx_tail = 0;
 
-Std_ReturnType UART_SendByte(uint8_t Byte) {
-    while(!(avr32_usart0.csr & 0x40));   // Wait TX ready
-    avr32_usart0 thr = Byte;
-    return E_OK;
-}
-
-Std_ReturnType UART_SendString(const char* Str) {
-    while(*Str) {
-        UART_SendByte(*Str++);
+// UART RX interrupt
+ISR(USART_RXC_vect) {
+    uint8_t data = UDR;
+    uint8_t next_head = (rx_head + 1) % UART_BUFFER_SIZE;
+    
+    if(next_head != rx_tail) {
+        rx_buffer[rx_head] = data;
+        rx_head = next_head;
     }
-    UART_SendByte('\n');
-    return E_OK;
 }
 
-Std_ReturnType UART_ReceiveByte(uint8_t* Byte) {
-    if(avr32_usart0.csr & 0x20) {        // RX ready
-        *Byte = avr32_usart0.rhr;
-        return E_OK;
+void UART_Init(uint32_t baud_rate) {
+    // Calculate UBRR value
+    // UBRR = (F_CPU / (16 * baud_rate)) - 1
+    uint16_t ubrr = (8000000UL / (16UL * baud_rate)) - 1;
+    
+    // Set baud rate
+    UBRRH = (uint8_t)(ubrr >> 8);
+    UBRRL = (uint8_t)ubrr;
+    
+    // Enable receiver, transmitter, and RX interrupt
+    UCSRB = (1 << RXEN) | (1 << TXEN) | (1 << RXCIE);
+    
+    // Set frame format: 8 data bits, 1 stop bit, no parity
+    UCSRC = (1 << URSEL) | (1 << UCSZ1) | (1 << UCSZ0);
+    
+    // Clear buffers
+    rx_head = 0;
+    rx_tail = 0;
+}
+
+void UART_SendByte(uint8_t data) {
+    // Wait for empty transmit buffer
+    while(!(UCSRA & (1 << UDRE)));
+    
+    // Put data into buffer, sends the data
+    UDR = data;
+}
+
+uint8_t UART_ReceiveByte(void) {
+    // Wait for data to be received
+    while(!(UCSRA & (1 << RXC)));
+    
+    // Get and return received data from buffer
+    return UDR;
+}
+
+void UART_SendString(const char *str) {
+    while(*str) {
+        UART_SendByte(*str++);
     }
-    return E_NOT_OK;
 }
 
-boolean UART_Available(void) {
-    return (avr32_usart0.csr & 0x20) != 0;
+void UART_SendData(uint8_t *data, uint16_t length) {
+    for(uint16_t i = 0; i < length; i++) {
+        UART_SendByte(data[i]);
+    }
+}
+
+uint8_t UART_DataAvailable(void) {
+    return (rx_head != rx_tail);
+}
+
+uint8_t UART_ReadByte(void) {
+    if(rx_head == rx_tail) return 0;
+    
+    uint8_t data = rx_buffer[rx_tail];
+    rx_tail = (rx_tail + 1) % UART_BUFFER_SIZE;
+    
+    return data;
 }
