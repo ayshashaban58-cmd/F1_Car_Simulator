@@ -1,52 +1,76 @@
-/*============================================================================
- * PID Controller Implementation
- * author : Aysha Shaban Galal
- * Date: Nov 2025
- * Standard PID formula with anti-windup
- *===========================================================================*/
+/*
+ * PID.c - PID Controller Implementation
+ * Controls servo angle to maintain straight line
+ */
 
 #include "PID.h"
+#include "../../HAL/MPU6050/MPU6050.h"
+#include "../Odometry/Odometry.h"
 
-PID_Controller_t SpeedPID;
-PID_Controller_t SteeringPID;
+#define DT 0.01f  // 100Hz = 10ms
+#define OUTPUT_LIMIT 45.0f  // Max servo angle ±45°
 
-void PID_Init(PID_Controller_t* pid, float32_t kp, float32_t ki, float32_t kd, 
-              float32_t min_out, float32_t max_out) {
-    pid->Kp = kp;
-    pid->Ki = ki;
-    pid->Kd = kd;
-    pid->OutputMin = min_out;
-    pid->OutputMax = max_out;
-    pid->Integral = 0.0f;
-    pid->PrevError = 0.0f;
-    pid->Dt = 0.01f;  // 100Hz
-    pid->Enabled = TRUE;
+static PID_Controller_t pid_steering = {
+    .kp = 2.0f,
+    .ki = 0.1f,
+    .kd = 0.5f,
+    .setpoint = 0.0f
+};
+
+void PID_Init(void) {
+    PID_Reset();
 }
 
-float32_t PID_Update(PID_Controller_t* pid, float32_t measurement) {
-    if(!pid->Enabled) return 0.0f;
+void PID_Update(void) {
+    // Get current orientation error
+    Odometry_Data_t* odo = Odometry_GetData();
     
-    float32_t error = pid->Setpoint - measurement;
-    pid->Integral += error * pid->Dt;
+    // Calculate error (difference from setpoint)
+    pid_steering.error = pid_steering.setpoint - odo->theta_deg;
     
-    // Anti-windup
-    if(pid->Integral > pid->OutputMax) pid->Integral = pid->OutputMax;
-    if(pid->Integral < pid->OutputMin) pid->Integral = pid->OutputMin;
+    // Normalize error to -180 to +180
+    while(pid_steering.error > 180.0f) pid_steering.error -= 360.0f;
+    while(pid_steering.error < -180.0f) pid_steering.error += 360.0f;
     
-    float32_t derivative = (error - pid->PrevError) / pid->Dt;
-    float32_t output = pid->Kp * error + 
-                      pid->Ki * pid->Integral + 
-                      pid->Kd * derivative;
+    // Calculate integral with anti-windup
+    pid_steering.integral += pid_steering.error * DT;
+    if(pid_steering.integral > 100.0f) pid_steering.integral = 100.0f;
+    if(pid_steering.integral < -100.0f) pid_steering.integral = -100.0f;
     
-    // Clamp output
-    if(output > pid->OutputMax) output = pid->OutputMax;
-    if(output < pid->OutputMin) output = pid->OutputMin;
+    // Calculate derivative
+    pid_steering.derivative = (pid_steering.error - pid_steering.last_error) / DT;
     
-    pid->PrevError = error;
-    return output;
+    // Calculate PID output
+    pid_steering.output = (pid_steering.kp * pid_steering.error) +
+                          (pid_steering.ki * pid_steering.integral) +
+                          (pid_steering.kd * pid_steering.derivative);
+    
+    // Limit output to servo range
+    if(pid_steering.output > OUTPUT_LIMIT) pid_steering.output = OUTPUT_LIMIT;
+    if(pid_steering.output < -OUTPUT_LIMIT) pid_steering.output = -OUTPUT_LIMIT;
+    
+    // Save last error
+    pid_steering.last_error = pid_steering.error;
 }
 
-void PID_Reset(PID_Controller_t* pid) {
-    pid->Integral = 0.0f;
-    pid->PrevError = 0.0f;
+void PID_Reset(void) {
+    pid_steering.error = 0.0f;
+    pid_steering.last_error = 0.0f;
+    pid_steering.integral = 0.0f;
+    pid_steering.derivative = 0.0f;
+    pid_steering.output = 0.0f;
+}
+
+void PID_SetGains(float kp, float ki, float kd) {
+    pid_steering.kp = kp;
+    pid_steering.ki = ki;
+    pid_steering.kd = kd;
+}
+
+void PID_SetSetpoint(float setpoint) {
+    pid_steering.setpoint = setpoint;
+}
+
+float PID_GetOutput(void) {
+    return pid_steering.output;
 }
