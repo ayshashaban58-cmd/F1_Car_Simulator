@@ -1,34 +1,59 @@
 /*
- * Dio.h - Digital Input/Output Driver
- * ATmega32 Pin Control
+ * Motor.c - DC Motor Driver Implementation
  */
 
-#ifndef DIO_H_
-#define DIO_H_
+#include "Motor.h"
+#include "../../MCAL/Dio/Dio.h"
+#include "../../MCAL/Timer/Timer.h"
 
-#include <stdint.h>
+#define MOTOR_IN1_PORT PORTB_REG
+#define MOTOR_IN1_PIN 0
+#define MOTOR_IN2_PORT PORTB_REG
+#define MOTOR_IN2_PIN 1
 
-// Port definitions
-#define PORTA_REG 0
-#define PORTB_REG 1
-#define PORTC_REG 2
-#define PORTD_REG 3
+void Motor_Init(void) {
+    // Set motor control pins as output
+    Dio_SetPinDirection(MOTOR_IN1_PORT, MOTOR_IN1_PIN, DIO_OUTPUT);
+    Dio_SetPinDirection(MOTOR_IN2_PORT, MOTOR_IN2_PIN, DIO_OUTPUT);
+    
+    // Stop motor initially
+    Motor_Stop();
+}
 
-// Pin direction
-#define DIO_INPUT  0
-#define DIO_OUTPUT 1
+void Motor_SetSpeed(uint8_t speed) {
+    // Limit speed to 0-100%
+    if(speed > MOTOR_SPEED_MAX) speed = MOTOR_SPEED_MAX;
+    
+    // Convert 0-100% to 0-1023 (10-bit PWM)
+    uint16_t pwm_value = (speed * 1023UL) / 100;
+    
+    Timer_SetPWM(PWM_MOTOR, pwm_value);
+}
 
-// Pin state
-#define DIO_LOW  0
-#define DIO_HIGH 1
+void Motor_SetDirection(uint8_t direction) {
+    switch(direction) {
+        case MOTOR_FORWARD:
+            Dio_WritePin(MOTOR_IN1_PORT, MOTOR_IN1_PIN, DIO_HIGH);
+            Dio_WritePin(MOTOR_IN2_PORT, MOTOR_IN2_PIN, DIO_LOW);
+            break;
+        case MOTOR_BACKWARD:
+            Dio_WritePin(MOTOR_IN1_PORT, MOTOR_IN1_PIN, DIO_LOW);
+            Dio_WritePin(MOTOR_IN2_PORT, MOTOR_IN2_PIN, DIO_HIGH);
+            break;
+        case MOTOR_STOP:
+        default:
+            Dio_WritePin(MOTOR_IN1_PORT, MOTOR_IN1_PIN, DIO_LOW);
+            Dio_WritePin(MOTOR_IN2_PORT, MOTOR_IN2_PIN, DIO_LOW);
+            break;
+    }
+}
 
-// Function prototypes
-void Dio_Init(void);
-void Dio_SetPinDirection(uint8_t port, uint8_t pin, uint8_t direction);
-void Dio_WritePin(uint8_t port, uint8_t pin, uint8_t value);
-uint8_t Dio_ReadPin(uint8_t port, uint8_t pin);
-void Dio_TogglePin(uint8_t port, uint8_t pin);
-void Dio_WritePort(uint8_t port, uint8_t value);
-uint8_t Dio_ReadPort(uint8_t port);
+void Motor_Stop(void) {
+    Motor_SetDirection(MOTOR_STOP);
+    Motor_SetSpeed(0);
+}
 
-#endif /* DIO_H_ */
+void Motor_Drive(uint8_t direction, uint8_t speed) {
+    Motor_SetDirection(direction);
+    Motor_SetSpeed(speed);
+}
