@@ -1,19 +1,22 @@
-/*============================================================================
- * UART Driver - ESP32 Communication
- * author : Aysha Shaban Galal
- * Date: Nov 2025
- * 115200 baud for telemetry
- *===========================================================================*/
+/*
+ * UART.h - UART Driver for ESP32 Communication
+ * TX: PD1, RX: PD0
+ */
 
 #ifndef UART_H_
 #define UART_H_
 
-#include "../Config/Std_Types.h"
+#include <stdint.h>
 
-Std_ReturnType UART_Init(uint32_t BaudRate);
-Std_ReturnType UART_SendByte(uint8_t Byte);
-Std_ReturnType UART_SendString(const char* Str);
-Std_ReturnType UART_ReceiveByte(uint8_t* Byte);
-boolean UART_Available(void);
+#define UART_BUFFER_SIZE 128
 
-#endif
+// Function prototypes
+void UART_Init(uint32_t baud_rate);
+void UART_SendByte(uint8_t data);
+uint8_t UART_ReceiveByte(void);
+void UART_SendString(const char *str);
+void UART_SendData(uint8_t *data, uint16_t length);
+uint8_t UART_DataAvailable(void);
+uint8_t UART_ReadByte(void);
+
+#endif /* UART_H_ */
