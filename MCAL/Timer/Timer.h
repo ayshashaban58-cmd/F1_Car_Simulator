@@ -1,19 +1,21 @@
-/*============================================================================
- * Timer Driver - PWM + System Tick
- * author : Aysha Shaban Galal
- * Date: Nov 2025
- * 20kHz PWM for motors + 100Hz control loop
- *===========================================================================*/
+/*
+ * Timer.h - Timer Driver for PWM and System Tick
+ * Timer0: 100Hz system tick (CTC mode)
+ * Timer1: PWM for motor and servo
+ */
 
 #ifndef TIMER_H_
 #define TIMER_H_
 
-#include "../Config/Std_Types.h"
+#include <stdint.h>
 
-typedef uint16_t PWM_DutyType;  // 0-1000
+// PWM channels
+#define PWM_MOTOR   0  // OC1A (PD5)
+#define PWM_SERVO   1  // OC1B (PD4)
 
-Std_ReturnType Timer_Init(void);
-Std_ReturnType Timer_SetPWM(uint8_t Channel, PWM_DutyType Duty);
-uint32_t Timer_GetTick(void);  // System time in ms
+// Function prototypes
+void Timer_Init(void);
+void Timer_SetPWM(uint8_t channel, uint16_t duty);
+uint32_t Timer_GetTicks(void);
 
-#endif
+#endif /* TIMER_H_ */
