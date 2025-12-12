@@ -1,30 +1,12 @@
-/*
- * MPU6050.h - IMU Sensor Driver
- * I2C Address: 0x68
- * Used for gyroscope Z-axis to maintain straight line
- */
+// src/HAL/MPU6050/MPU6050.h
 
-#ifndef MPU6050_H_
-#define MPU6050_H_
+#ifndef MPU6050_H
+#define MPU6050_H
 
-#include <stdint.h>
+#define MPU6050_ADDR 0x68
 
-// MPU6050 data structure
-typedef struct {
-    int16_t accel_x;
-    int16_t accel_y;
-    int16_t accel_z;
-    int16_t gyro_x;
-    int16_t gyro_y;
-    int16_t gyro_z;
-    float angle_z;      // Integrated angle from gyro
-    float gyro_z_dps;   // Gyro Z in degrees per second
-} MPU6050_Data_t;
-
-// Function prototypes
 void MPU6050_Init(void);
-void MPU6050_Read(void);
-MPU6050_Data_t* MPU6050_GetData(void);
-void MPU6050_ResetAngle(void);
+void MPU6050_ReadAccel(int16_t* ax, int16_t* ay, int16_t* az);
+void MPU6050_ReadGyro(int16_t* gx, int16_t* gy, int16_t* gz);
 
-#endif /* MPU6050_H_ */
+#endif
