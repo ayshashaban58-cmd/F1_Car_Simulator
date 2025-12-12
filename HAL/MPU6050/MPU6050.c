@@ -1,5 +1,3 @@
-// src/HAL/MPU6050/MPU6050.c
-
 #include "MPU6050.h"
 #include "../../MCAL/I2C/I2C.h"
 
