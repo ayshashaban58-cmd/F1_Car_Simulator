@@ -1,5 +1,3 @@
-// src/MCAL/UART/UART.c
-
 #include <avr/io.h>
 #include "UART.h"
 
@@ -8,6 +6,8 @@ void UART_Init(void) {
     UBRRL = 51; // 9600 baud at 8MHz
     UCSRB = (1 << RXEN) | (1 << TXEN);
     UCSRC = (1 << URSEL) | (1 << UCSZ1) | (1 << UCSZ0);
+    DDRD |= (1 << PD1); // TX as output
+    DDRD &= ~(1 << PD0); // RX as input
 }
 
 void UART_SendByte(uint8_t byte) {
