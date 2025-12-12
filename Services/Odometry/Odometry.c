@@ -1,36 +1,34 @@
-// src/Services/Odometry/Odometry.c
-
 #include "Odometry.h"
 #include "../../HAL/MPU6050/MPU6050.h"
 #include "../../MCAL/Timer/Timer.h"
+#include <math.h> // Add -lm in linker for math
 
 float x = 0, y = 0, theta = 0;
 int16_t ax, ay, az, gx, gy, gz;
 uint32_t last_tick = 0;
-const float SQUARE_SIZE = 49.5; // cm
-const float ASSUMED_SPEED = 10.0; // cm/s, assume constant speed
+const float ASSUMED_SPEED = 10.0; // cm/s, adjust
 
 void Odometry_Init(void) {
     MPU6050_Init();
 }
 
 void Odometry_Update(void) {
-    uint32_t dt = Timer_GetTick() - last_tick;
-    last_tick = Timer_GetTick();
-    float delta_t = dt / 100.0; // 100Hz
+    uint32_t current_tick = Timer_GetTick();
+    float delta_t = (current_tick - last_tick) / 100.0f; // sec
+    last_tick = current_tick;
 
     MPU6050_ReadAccel(&ax, &ay, &az);
     MPU6050_ReadGyro(&gx, &gy, &gz);
 
-    // Simple integration, error-prone but for demo
-    theta += (gz / 16384.0) * delta_t; // Sensitivity 16384 LSB/deg/s
+    theta += (gz / 16384.0f) * delta_t; // deg/s sensitivity
 
-    float vx = ASSUMED_SPEED * cos(theta);
-    float vy = ASSUMED_SPEED * sin(theta);
+    float vx = ASSUMED_SPEED * cos(theta * M_PI / 180.0f);
+    float vy = ASSUMED_SPEED * sin(theta * M_PI / 180.0f);
 
     x += vx * delta_t;
     y += vy * delta_t;
 }
+
 float Odometry_GetX(void) { return x; }
 float Odometry_GetY(void) { return y; }
 float Odometry_GetTheta(void) { return theta; }
