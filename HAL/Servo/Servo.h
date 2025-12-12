@@ -1,5 +1,3 @@
-// src/HAL/Servo/Servo.h
-
 #ifndef SERVO_H
 #define SERVO_H
 
