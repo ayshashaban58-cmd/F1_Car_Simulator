@@ -1,5 +1,3 @@
-// src/Application/UART_Telemetry/Telemetry.h
-
 #ifndef TELEMETRY_H
 #define TELEMETRY_H
 
