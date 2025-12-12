@@ -1,59 +1,36 @@
-/*
- * Motor.c - DC Motor Driver Implementation
- */
+// src/HAL/Motor_L298N/Motor.c
 
 #include "Motor.h"
 #include "../../MCAL/Dio/Dio.h"
 #include "../../MCAL/Timer/Timer.h"
 
-#define MOTOR_IN1_PORT PORTB_REG
-#define MOTOR_IN1_PIN 0
-#define MOTOR_IN2_PORT PORTB_REG
-#define MOTOR_IN2_PIN 1
+// Assume pins: IN1 PB0, IN2 PB1, ENA PD6 (PWM)
 
 void Motor_Init(void) {
-    // Set motor control pins as output
-    Dio_SetPinDirection(MOTOR_IN1_PORT, MOTOR_IN1_PIN, DIO_OUTPUT);
-    Dio_SetPinDirection(MOTOR_IN2_PORT, MOTOR_IN2_PIN, DIO_OUTPUT);
-    
-    // Stop motor initially
-    Motor_Stop();
+    Dio_WritePin(0, 0); // PB0
+    Dio_WritePin(1, 0); // PB1
 }
 
-void Motor_SetSpeed(uint8_t speed) {
-    // Limit speed to 0-100%
-    if(speed > MOTOR_SPEED_MAX) speed = MOTOR_SPEED_MAX;
-    
-    // Convert 0-100% to 0-1023 (10-bit PWM)
-    uint16_t pwm_value = (speed * 1023UL) / 100;
-    
-    Timer_SetPWM(PWM_MOTOR, pwm_value);
-}
-
-void Motor_SetDirection(uint8_t direction) {
-    switch(direction) {
-        case MOTOR_FORWARD:
-            Dio_WritePin(MOTOR_IN1_PORT, MOTOR_IN1_PIN, DIO_HIGH);
-            Dio_WritePin(MOTOR_IN2_PORT, MOTOR_IN2_PIN, DIO_LOW);
-            break;
-        case MOTOR_BACKWARD:
-            Dio_WritePin(MOTOR_IN1_PORT, MOTOR_IN1_PIN, DIO_LOW);
-            Dio_WritePin(MOTOR_IN2_PORT, MOTOR_IN2_PIN, DIO_HIGH);
-            break;
-        case MOTOR_STOP:
-        default:
-            Dio_WritePin(MOTOR_IN1_PORT, MOTOR_IN1_PIN, DIO_LOW);
-            Dio_WritePin(MOTOR_IN2_PORT, MOTOR_IN2_PIN, DIO_LOW);
-            break;
+void Motor_SetSpeed(int16_t speed) {
+    uint16_t abs_speed = (speed < 0) ? -speed : speed;
+    Timer_SetPWM(0, abs_speed);
+    if (speed > 0) {
+        Dio_WritePin(0, 1);
+        Dio_WritePin(1, 0);
+    } else if (speed < 0) {
+        Dio_WritePin(0, 0);
+        Dio_WritePin(1, 1);
+    } else {
+        Motor_Stop();
     }
 }
 
-void Motor_Stop(void) {
-    Motor_SetDirection(MOTOR_STOP);
-    Motor_SetSpeed(0);
+void Motor_SetDirection(uint8_t dir) {
+    // Integrated in SetSpeed
 }
 
-void Motor_Drive(uint8_t direction, uint8_t speed) {
-    Motor_SetDirection(direction);
-    Motor_SetSpeed(speed);
+void Motor_Stop(void) {
+    Dio_WritePin(0, 0);
+    Dio_WritePin(1, 0);
+    Timer_SetPWM(0, 0);
 }
