@@ -1,10 +1,7 @@
-// src/Application/UART_Telemetry/Telemetry.c
-
 #include "Telemetry.h"
 #include "../../MCAL/UART/UART.h"
 #include "../Odometry/Odometry.h"
-
-// Simple protocol: send string "x:y:theta\n"
+#include <stdio.h>
 
 void Telemetry_Send(void) {
     char buf[50];
