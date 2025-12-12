@@ -1,27 +1,24 @@
-// src/HAL/IR_Markers_4x/IR_Markers.c
-
 #include "IR_Markers.h"
 #include "../../MCAL/Dio/Dio.h"
 
-// Assume 4 IR sensors on PC0-PC3
-
 void IR_Markers_Init(void) {
-    // Inputs
+    // Inputs already in Dio_Init
 }
 
 void IR_Markers_Scan(void) {
-    // Read pins
+    // Scan if needed
 }
 
 uint8_t IR_Markers_GetPattern(void) {
     uint8_t pattern = 0;
-    pattern |= Dio_ReadPin(16) << 0; // PC0
-    pattern |= Dio_ReadPin(17) << 1;
-    pattern |= Dio_ReadPin(18) << 2;
-    pattern |= Dio_ReadPin(19) << 3;
-    if (pattern == 0x0F) return 1; // Example marker 1 when all high (black line)
-    if (pattern == 0x07) return 2;
-    if (pattern == 0x03) return 3;
-    if (pattern == 0x01) return 4;
+    pattern |= Dio_ReadPin('C', PC2) << 0;
+    pattern |= Dio_ReadPin('C', PC3) << 1;
+    pattern |= Dio_ReadPin('C', PC4) << 2;
+    pattern |= Dio_ReadPin('C', PC5) << 3;
+    // Example patterns for 4 markers (adjust based on your IR logic for black line)
+    if (pattern == 0b1111) return 1;
+    if (pattern == 0b0111) return 2;
+    if (pattern == 0b0011) return 3;
+    if (pattern == 0b0001) return 4;
     return 0;
 }
