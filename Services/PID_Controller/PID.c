@@ -1,8 +1,7 @@
-// src/Services/PID_Controller/PID.c
-
 #include "PID.h"
 #include "../Odometry/Odometry.h"
 #include "../Path_Planning/Path_Planning.h"
+#include <math.h>
 
 float kp_speed = 1.0, ki_speed = 0.1, kd_speed = 0.05;
 float kp_steer = 2.0, ki_steer = 0.2, kd_steer = 0.1;
@@ -20,24 +19,28 @@ void PID_Update(void) {
     float curr_theta = Odometry_GetTheta();
 
     float err_dist = sqrt(pow(target_x - curr_x, 2) + pow(target_y - curr_y, 2));
-    float err_angle = atan2(target_y - curr_y, target_x - curr_x) - curr_theta;
+    float err_angle = atan2(target_y - curr_y, target_x - curr_x) - curr_theta * M_PI / 180.0f;
 
     // Speed PID
-    float d_err_speed = err_dist - prev_err_speed;
     integral_speed += err_dist;
+    float d_err_speed = err_dist - prev_err_speed;
     pid_speed_output = kp_speed * err_dist + ki_speed * integral_speed + kd_speed * d_err_speed;
     prev_err_speed = err_dist;
 
     // Steering PID
-    float d_err_steer = err_angle - prev_err_steer;
     integral_steer += err_angle;
+    float d_err_steer = err_angle - prev_err_steer;
     pid_steering_output = kp_steer * err_angle + ki_steer * integral_steer + kd_steer * d_err_steer;
     prev_err_steer = err_angle;
+
+    // Limit outputs
+    if (pid_speed_output > 255) pid_speed_output = 255;
+    if (pid_speed_output < -255) pid_speed_output = -255;
+    if (pid_steering_output > 90) pid_steering_output = 90;
+    if (pid_steering_output < -90) pid_steering_output = -90;
 }
 
 void PID_Reset(void) {
-    integral_speed = 0;
-    integral_steer = 0;
-    prev_err_speed = 0;
-    prev_err_steer = 0;
+    integral_speed = integral_steer = 0;
+    prev_err_speed = prev_err_steer = 0;
 }
