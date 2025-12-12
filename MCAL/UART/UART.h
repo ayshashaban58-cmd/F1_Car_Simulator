@@ -1,22 +1,11 @@
-/*
- * UART.h - UART Driver for ESP32 Communication
- * TX: PD1, RX: PD0
- */
+// src/MCAL/UART/UART.h
 
-#ifndef UART_H_
-#define UART_H_
+#ifndef UART_H
+#define UART_H
 
-#include <stdint.h>
-
-#define UART_BUFFER_SIZE 128
-
-// Function prototypes
-void UART_Init(uint32_t baud_rate);
-void UART_SendByte(uint8_t data);
+void UART_Init(void);
+void UART_SendByte(uint8_t byte);
 uint8_t UART_ReceiveByte(void);
-void UART_SendString(const char *str);
-void UART_SendData(uint8_t *data, uint16_t length);
-uint8_t UART_DataAvailable(void);
-uint8_t UART_ReadByte(void);
+void UART_SendString(const char* str);
 
-#endif /* UART_H_ */
+#endif
