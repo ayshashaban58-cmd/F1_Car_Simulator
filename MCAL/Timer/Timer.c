@@ -1,50 +1,29 @@
-/*
- * Timer.c - Timer Driver Implementation
- */
+// src/MCAL/Timer/Timer.c
 
-#include "Timer.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include "Timer.h"
 
-extern volatile uint32_t system_ticks;
+extern volatile uint32_t system_tick;
 
 void Timer_Init(void) {
-    // Timer0: CTC mode for 100Hz system tick
-    // F_CPU = 8MHz, Prescaler = 1024
-    // OCR0 = (8000000 / (1024 * 100)) - 1 = 77
-    TCCR0 = (1 << WGM01) | (1 << CS02) | (1 << CS00); // CTC, prescaler 1024
-    OCR0 = 77;
-    TIMSK |= (1 << OCIE0); // Enable compare match interrupt
-    
-    // Timer1: Fast PWM mode, 10-bit
-    // Non-inverting mode for both OC1A and OC1B
-    // Prescaler = 8, PWM frequency = 8MHz/(8*1024) = ~977Hz
-    TCCR1A = (1 << COM1A1) | (1 << COM1B1) | (1 << WGM11); // Non-inverting, Fast PWM 10-bit
-    TCCR1B = (1 << WGM12) | (1 << CS11); // Fast PWM 10-bit, prescaler 8
-    ICR1 = 1023; // 10-bit resolution
-    
-    // Initialize PWM outputs to 0
-    OCR1A = 0; // Motor
-    OCR1B = 0; // Servo
-    
-    // Set PWM pins as output
-    DDRD |= (1 << PD5) | (1 << PD4); // OC1A and OC1B
+    // Timer1 for 100Hz interrupt, 8MHz clock
+    TCCR1A = 0;
+    TCCR1B = (1 << WGM12) | (1 << CS12); // CTC, prescaler 256
+    OCR1A = 312; // For 100Hz: 8000000 / 256 / 100 = 312.5
+    TIMSK1 = (1 << OCIE1A);
+
+    // PWM for motor and servo (Timer0 for example)
+    TCCR0A = (1 << COM0A1) | (1 << WGM01) | (1 << WGM00); // Fast PWM
+    TCCR0B = (1 << CS01); // Prescaler 8
+    DDRD |= (1 << PD6); // OC0A
 }
 
 void Timer_SetPWM(uint8_t channel, uint16_t duty) {
-    // Limit duty cycle to 10-bit (0-1023)
-    if(duty > 1023) duty = 1023;
-    
-    switch(channel) {
-        case PWM_MOTOR:
-            OCR1A = duty;
-            break;
-        case PWM_SERVO:
-            OCR1B = duty;
-            break;
-    }
+    if (channel == 0) OCR0A = duty; // 0-255
+    // Add more channels
 }
 
-uint32_t Timer_GetTicks(void) {
-    return system_ticks;
+uint32_t Timer_GetTick(void) {
+    return system_tick;
 }
