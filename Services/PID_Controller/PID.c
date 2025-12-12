@@ -1,76 +1,43 @@
-/*
- * PID.c - PID Controller Implementation
- * Controls servo angle to maintain straight line
- */
+// src/Services/PID_Controller/PID.c
 
 #include "PID.h"
-#include "../../HAL/MPU6050/MPU6050.h"
 #include "../Odometry/Odometry.h"
+#include "../Path_Planning/Path_Planning.h"
 
-#define DT 0.01f  // 100Hz = 10ms
-#define OUTPUT_LIMIT 45.0f  // Max servo angle ±45°
+float kp_speed = 1.0, ki_speed = 0.1, kd_speed = 0.05;
+float kp_steer = 2.0, ki_steer = 0.2, kd_steer = 0.1;
+float integral_speed = 0, prev_err_speed = 0;
+float integral_steer = 0, prev_err_steer = 0;
+float pid_speed_output = 0, pid_steering_output = 0;
 
-static PID_Controller_t pid_steering = {
-    .kp = 2.0f,
-    .ki = 0.1f,
-    .kd = 0.5f,
-    .setpoint = 0.0f
-};
-
-void PID_Init(void) {
-    PID_Reset();
-}
+void PID_Init(void) {}
 
 void PID_Update(void) {
-    // Get current orientation error
-    Odometry_Data_t* odo = Odometry_GetData();
-    
-    // Calculate error (difference from setpoint)
-    pid_steering.error = pid_steering.setpoint - odo->theta_deg;
-    
-    // Normalize error to -180 to +180
-    while(pid_steering.error > 180.0f) pid_steering.error -= 360.0f;
-    while(pid_steering.error < -180.0f) pid_steering.error += 360.0f;
-    
-    // Calculate integral with anti-windup
-    pid_steering.integral += pid_steering.error * DT;
-    if(pid_steering.integral > 100.0f) pid_steering.integral = 100.0f;
-    if(pid_steering.integral < -100.0f) pid_steering.integral = -100.0f;
-    
-    // Calculate derivative
-    pid_steering.derivative = (pid_steering.error - pid_steering.last_error) / DT;
-    
-    // Calculate PID output
-    pid_steering.output = (pid_steering.kp * pid_steering.error) +
-                          (pid_steering.ki * pid_steering.integral) +
-                          (pid_steering.kd * pid_steering.derivative);
-    
-    // Limit output to servo range
-    if(pid_steering.output > OUTPUT_LIMIT) pid_steering.output = OUTPUT_LIMIT;
-    if(pid_steering.output < -OUTPUT_LIMIT) pid_steering.output = -OUTPUT_LIMIT;
-    
-    // Save last error
-    pid_steering.last_error = pid_steering.error;
+    float target_x = Path_Planning_GetTargetX();
+    float target_y = Path_Planning_GetTargetY();
+    float curr_x = Odometry_GetX();
+    float curr_y = Odometry_GetY();
+    float curr_theta = Odometry_GetTheta();
+
+    float err_dist = sqrt(pow(target_x - curr_x, 2) + pow(target_y - curr_y, 2));
+    float err_angle = atan2(target_y - curr_y, target_x - curr_x) - curr_theta;
+
+    // Speed PID
+    float d_err_speed = err_dist - prev_err_speed;
+    integral_speed += err_dist;
+    pid_speed_output = kp_speed * err_dist + ki_speed * integral_speed + kd_speed * d_err_speed;
+    prev_err_speed = err_dist;
+
+    // Steering PID
+    float d_err_steer = err_angle - prev_err_steer;
+    integral_steer += err_angle;
+    pid_steering_output = kp_steer * err_angle + ki_steer * integral_steer + kd_steer * d_err_steer;
+    prev_err_steer = err_angle;
 }
 
 void PID_Reset(void) {
-    pid_steering.error = 0.0f;
-    pid_steering.last_error = 0.0f;
-    pid_steering.integral = 0.0f;
-    pid_steering.derivative = 0.0f;
-    pid_steering.output = 0.0f;
-}
-
-void PID_SetGains(float kp, float ki, float kd) {
-    pid_steering.kp = kp;
-    pid_steering.ki = ki;
-    pid_steering.kd = kd;
-}
-
-void PID_SetSetpoint(float setpoint) {
-    pid_steering.setpoint = setpoint;
-}
-
-float PID_GetOutput(void) {
-    return pid_steering.output;
+    integral_speed = 0;
+    integral_steer = 0;
+    prev_err_speed = 0;
+    prev_err_steer = 0;
 }
