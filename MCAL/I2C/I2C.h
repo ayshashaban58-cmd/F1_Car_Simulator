@@ -1,5 +1,3 @@
-// src/MCAL/I2C/I2C.h
-
 #ifndef I2C_H
 #define I2C_H
 
