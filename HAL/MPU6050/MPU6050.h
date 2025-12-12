@@ -1,5 +1,3 @@
-// src/HAL/MPU6050/MPU6050.h
-
 #ifndef MPU6050_H
 #define MPU6050_H
 
