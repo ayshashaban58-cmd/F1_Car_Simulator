@@ -1,37 +1,22 @@
-/*============================================================================
- * Marker Correction Implementation
- * author : Aysha Shaban Galal
- * Date: Nov 2025
- * Snap position to exact marker coordinates
- *===========================================================================*/
+// src/Services/Marker_Correction/Marker_Correction.c
 
 #include "Marker_Correction.h"
-#include "../../HAL/Encoder/Encoder.h"
+#include "../../HAL/IR_Markers_4x/IR_Markers.h"
 #include "../Odometry/Odometry.h"
-#include "../../Config/Markers_Cfg.h"
+#include "../PID_Controller/PID.h"
 
-Std_ReturnType Marker_Correction_Init(void) {
-    return E_OK;
-}
+float known_positions[4][2] = { // Random positions for 4 markers
+    {2*49.5, 0.5*49.5}, {3.5*49.5, 1.5*49.5}, {1*49.5, 2.5*49.5}, {2.5*49.5, 3.5*49.5}
+};
 
-Std_ReturnType Marker_CorrectPosition(Detected_Marker_t MarkerID) {
-    if(MarkerID == NO_MARKER || MarkerID > NUM_MARKERS) {
-        return E_NOT_OK;
+void Marker_Correction_Init(void) {}
+
+void Marker_Correction_Correct(void) {
+    uint8_t marker_id = IR_Markers_GetPattern();
+    if (marker_id > 0 && marker_id <= 4) {
+        // Reset position to known
+        // For simplicity, set x,y to known
+        // Odometry_SetPosition(known_positions[marker_id-1][0], known_positions[marker_id-1][1]); // Add setter if needed
+        PID_Reset();
     }
-    
-    uint8_t index = MarkerID - 1;
-    
-    // Snap to exact marker position
-    CarPosition.X = Known_Markers[index].X;
-    CarPosition.Y = Known_Markers[index].Y;
-    CarPosition.Theta = 0.0f;  // Assume facing forward
-    
-    // Reset encoder offset
-    RearEncoder.Distance = 0.0f;
-    
-    // Reset PID integrals
-    PID_Reset(&SpeedPID);
-    PID_Reset(&SteeringPID);
-    
-    return E_OK;
 }
