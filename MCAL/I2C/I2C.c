@@ -1,5 +1,3 @@
-// src/MCAL/I2C/I2C.c
-
 #include <avr/io.h>
 #include "I2C.h"
 
