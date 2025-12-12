@@ -1,5 +1,3 @@
-// src/MCAL/UART/UART.h
-
 #ifndef UART_H
 #define UART_H
 
