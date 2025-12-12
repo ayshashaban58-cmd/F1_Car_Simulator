@@ -5,20 +5,18 @@
  * IMU + Single Encoder fusion
  *===========================================================================*/
 
-#ifndef ODOMETRY_H_
-#define ODOMETRY_H_
+// src/Services/Odometry/Odometry.h
 
-#include "../Config/Std_Types.h"
+#ifndef ODOMETRY_H
+#define ODOMETRY_H
 
-typedef struct {
-    float32_t X, Y;           // Grid position (0.0-8.0)
-    float32_t Theta;          // Heading (radians)
-    float32_t Vx, Vy;         // Velocity
-    float32_t Omega;          // Angular velocity
-    uint32_t Timestamp;
-    float32_t Error;
-} Position_t;
+void Odometry_Init(void);
+void Odometry_Update(void);
+float Odometry_GetX(void);
+float Odometry_GetY(void);
+float Odometry_GetTheta(void);
 
+#endif
 extern Position_t CarPosition;
 
 Std_ReturnType Odometry_Init(float32_t StartX, float32_t StartY);
