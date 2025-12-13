@@ -1,46 +1,49 @@
 #include "PID.h"
-#include "../Odometry/Odometry.h"
-#include "../Path_Planning/Path_Planning.h"
-#include <math.h>
 
-float kp_speed = 1.0, ki_speed = 0.1, kd_speed = 0.05;
-float kp_steer = 2.0, ki_steer = 0.2, kd_steer = 0.1;
-float integral_speed = 0, prev_err_speed = 0;
-float integral_steer = 0, prev_err_steer = 0;
-float pid_speed_output = 0, pid_steering_output = 0;
-
-void PID_Init(void) {}
-
-void PID_Update(void) {
-    float target_x = Path_Planning_GetTargetX();
-    float target_y = Path_Planning_GetTargetY();
-    float curr_x = Odometry_GetX();
-    float curr_y = Odometry_GetY();
-    float curr_theta = Odometry_GetTheta();
-
-    float err_dist = sqrt(pow(target_x - curr_x, 2) + pow(target_y - curr_y, 2));
-    float err_angle = atan2(target_y - curr_y, target_x - curr_x) - curr_theta * M_PI / 180.0f;
-
-    // Speed PID
-    integral_speed += err_dist;
-    float d_err_speed = err_dist - prev_err_speed;
-    pid_speed_output = kp_speed * err_dist + ki_speed * integral_speed + kd_speed * d_err_speed;
-    prev_err_speed = err_dist;
-
-    // Steering PID
-    integral_steer += err_angle;
-    float d_err_steer = err_angle - prev_err_steer;
-    pid_steering_output = kp_steer * err_angle + ki_steer * integral_steer + kd_steer * d_err_steer;
-    prev_err_steer = err_angle;
-
-    // Limit outputs
-    if (pid_speed_output > 255) pid_speed_output = 255;
-    if (pid_speed_output < -255) pid_speed_output = -255;
-    if (pid_steering_output > 90) pid_steering_output = 90;
-    if (pid_steering_output < -90) pid_steering_output = -90;
+void PID_Init(PID_ControllerType* pid, float kp, float ki, float kd, float minOut, float maxOut) {
+    pid->kp = kp;
+    pid->ki = ki;
+    pid->kd = kd;
+    pid->integral = 0.0f;
+    pid->prevError = 0.0f;
+    pid->output = 0.0f;
+    pid->minOutput = minOut;
+    pid->maxOutput = maxOut;
 }
 
-void PID_Reset(void) {
-    integral_speed = integral_steer = 0;
-    prev_err_speed = prev_err_steer = 0;
+float PID_Update(PID_ControllerType* pid, float error, float dt) {
+    // Proportional term
+    float p = pid->kp * error;
+    
+    // Integral term with anti-windup
+    pid->integral += error * dt;
+    float i = pid->ki * pid->integral;
+    
+    // Derivative term
+    float d = 0.0f;
+    if(dt > 0.0f) {
+        d = pid->kd * (error - pid->prevError) / dt;
+    }
+    
+    // Calculate output
+    pid->output = p + i + d;
+    
+    // Clamp output
+    if(pid->output > pid->maxOutput) {
+        pid->output = pid->maxOutput;
+        // Anti-windup: stop integral growth
+        pid->integral -= error * dt;
+    } else if(pid->output < pid->minOutput) {
+        pid->output = pid->minOutput;
+        pid->integral -= error * dt;
+    }
+    
+    pid->prevError = error;
+    return pid->output;
+}
+
+void PID_Reset(PID_ControllerType* pid) {
+    pid->integral = 0.0f;
+    pid->prevError = 0.0f;
+    pid->output = 0.0f;
 }
