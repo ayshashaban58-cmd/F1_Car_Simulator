@@ -1,36 +1,74 @@
-#include <avr/io.h>
 #include "Dio.h"
 
-void Dio_Init(void) {
-    // Outputs for Motor: PB0 (IN1), PB1 (IN2), PD6 (ENA PWM)
-    DDRB |= (1 << PB0) | (1 << PB1);
-    DDRD |= (1 << PD6);
-    // Output for Servo: PB2 (PWM)
-    DDRB |= (1 << PB2);
-    // Inputs for IR Markers: PC2-PC5
-    DDRC &= ~((1 << PC2) | (1 << PC3) | (1 << PC4) | (1 << PC5));
-    // I2C: PC0 (SCL), PC1 (SDA) - handled in I2C_Init
-    // UART: PD0 (RX), PD1 (TX) - handled in UART_Init
+static volatile uint8_t* getDDRRegister(Dio_PortType port) {
+    switch(port) {
+        case DIO_PORTA: return &DDRA;
+        case DIO_PORTB: return &DDRB;
+        case DIO_PORTC: return &DDRC;
+        case DIO_PORTD: return &DDRD;
+        default: return &DDRA;
+    }
 }
 
-void Dio_WritePin(char port, uint8_t bit, uint8_t value) {
-    if (port == 'B') {
-        if (value) PORTB |= (1 << bit);
-        else PORTB &= ~(1 << bit);
-    } else if (port == 'D') {
-        if (value) PORTD |= (1 << bit);
-        else PORTD &= ~(1 << bit);
-    } // Add 'A', 'C' if needed
+static volatile uint8_t* getPORTRegister(Dio_PortType port) {
+    switch(port) {
+        case DIO_PORTA: return &PORTA;
+        case DIO_PORTB: return &PORTB;
+        case DIO_PORTC: return &PORTC;
+        case DIO_PORTD: return &PORTD;
+        default: return &PORTA;
+    }
 }
 
-uint8_t Dio_ReadPin(char port, uint8_t bit) {
-    if (port == 'B') return (PINB & (1 << bit)) ? 1 : 0;
-    if (port == 'C') return (PINC & (1 << bit)) ? 1 : 0;
-    if (port == 'D') return (PIND & (1 << bit)) ? 1 : 0;
-    return 0;
+static volatile uint8_t* getPINRegister(Dio_PortType port) {
+    switch(port) {
+        case DIO_PORTA: return &PINA;
+        case DIO_PORTB: return &PINB;
+        case DIO_PORTC: return &PINC;
+        case DIO_PORTD: return &PIND;
+        default: return &PINA;
+    }
 }
 
-void Dio_TogglePin(char port, uint8_t bit) {
-    if (port == 'B') PORTB ^= (1 << bit);
-    if (port == 'D') PORTD ^= (1 << bit);
+void Dio_SetPinDirection(Dio_PortType port, Dio_PinType pin, Dio_DirectionType dir) {
+    volatile uint8_t* ddr = getDDRRegister(port);
+    if(dir == DIO_OUTPUT) {
+        *ddr |= (1 << pin);
+    } else {
+        *ddr &= ~(1 << pin);
+    }
+}
+
+void Dio_WritePin(Dio_PortType port, Dio_PinType pin, Dio_LevelType level) {
+    volatile uint8_t* portReg = getPORTRegister(port);
+    if(level == DIO_HIGH) {
+        *portReg |= (1 << pin);
+    } else {
+        *portReg &= ~(1 << pin);
+    }
+}
+
+Dio_LevelType Dio_ReadPin(Dio_PortType port, Dio_PinType pin) {
+    volatile uint8_t* pinReg = getPINRegister(port);
+    return (*pinReg & (1 << pin)) ? DIO_HIGH : DIO_LOW;
+}
+
+void Dio_TogglePin(Dio_PortType port, Dio_PinType pin) {
+    volatile uint8_t* portReg = getPORTRegister(port);
+    *portReg ^= (1 << pin);
+}
+
+void Dio_SetPortDirection(Dio_PortType port, uint8_t dir) {
+    volatile uint8_t* ddr = getDDRRegister(port);
+    *ddr = dir;
+}
+
+void Dio_WritePort(Dio_PortType port, uint8_t value) {
+    volatile uint8_t* portReg = getPORTRegister(port);
+    *portReg = value;
+}
+
+uint8_t Dio_ReadPort(Dio_PortType port) {
+    volatile uint8_t* pinReg = getPINRegister(port);
+    return *pinReg;
 }
