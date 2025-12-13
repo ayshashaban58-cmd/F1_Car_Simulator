@@ -1,24 +1,31 @@
 #include "IR_Markers.h"
-#include "../../MCAL/Dio/Dio.h"
 
 void IR_Markers_Init(void) {
-    // Inputs already in Dio_Init
+    Dio_SetPinDirection(IR_PORT, IR1_PIN, DIO_INPUT);
+    Dio_SetPinDirection(IR_PORT, IR2_PIN, DIO_INPUT);
+    Dio_SetPinDirection(IR_PORT, IR3_PIN, DIO_INPUT);
+    Dio_SetPinDirection(IR_PORT, IR4_PIN, DIO_INPUT);
 }
 
-void IR_Markers_Scan(void) {
-    // Scan if needed
+void IR_Markers_Scan(IR_Markers_DataType* data) {
+    // Read sensors (0 = black line detected, 1 = white surface)
+    data->sensor1 = Dio_ReadPin(IR_PORT, IR1_PIN);
+    data->sensor2 = Dio_ReadPin(IR_PORT, IR2_PIN);
+    data->sensor3 = Dio_ReadPin(IR_PORT, IR3_PIN);
+    data->sensor4 = Dio_ReadPin(IR_PORT, IR4_PIN);
+    
+    // Check if any sensor detects black line (marker)
+    if(data->sensor1 == DIO_LOW || data->sensor2 == DIO_LOW || 
+       data->sensor3 == DIO_LOW || data->sensor4 == DIO_LOW) {
+        if(!data->markerDetected) {
+            data->markerDetected = 1;
+            data->markerCount++;
+        }
+    } else {
+        data->markerDetected = 0;
+    }
 }
 
-uint8_t IR_Markers_GetPattern(void) {
-    uint8_t pattern = 0;
-    pattern |= Dio_ReadPin('C', PC2) << 0;
-    pattern |= Dio_ReadPin('C', PC3) << 1;
-    pattern |= Dio_ReadPin('C', PC4) << 2;
-    pattern |= Dio_ReadPin('C', PC5) << 3;
-    // Example patterns for 4 markers (adjust based on your IR logic for black line)
-    if (pattern == 0b1111) return 1;
-    if (pattern == 0b0111) return 2;
-    if (pattern == 0b0011) return 3;
-    if (pattern == 0b0001) return 4;
-    return 0;
+uint8_t IR_Markers_IsOnLine(IR_Markers_DataType* data) {
+    return data->markerDetected;
 }
