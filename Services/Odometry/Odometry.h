@@ -5,13 +5,26 @@
  * IMU + Single Encoder fusion
  *===========================================================================*/
 
-#ifndef ODOMETRY_H
-#define ODOMETRY_H
+#ifndef ODOMETRY_H_
+#define ODOMETRY_H_
 
-void Odometry_Init(void);
-void Odometry_Update(void);
-float Odometry_GetX(void);
-float Odometry_GetY(void);
-float Odometry_GetTheta(void);
+#include <stdint.h>
+#include "../HAL/MPU6050/MPU6050.h"
 
-#endif
+#define GRID_SIZE 49.5f // Grid square size in cm
+
+typedef struct {
+    float x; // X position in cm
+    float y; // Y position in cm
+    float theta; // Heading angle in degrees
+    float speed; // Current speed in cm/s
+    uint8_t squaresPassed; // Number of grid squares passed
+} Odometry_DataType;
+
+// Function Prototypes
+void Odometry_Init(Odometry_DataType* odom);
+void Odometry_Update(Odometry_DataType* odom, MPU6050_DataType* imu, float dt);
+void Odometry_Reset(Odometry_DataType* odom);
+void Odometry_ResetErrors(Odometry_DataType* odom, float correctedX, float correctedY, float correctedTheta);
+
+#endif /* ODOMETRY_H_ */
