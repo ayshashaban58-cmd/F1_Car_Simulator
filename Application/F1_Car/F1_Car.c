@@ -1,21 +1,34 @@
 #include "F1_Car.h"
-#include "../../HAL/Motor_L298N/Motor.h"
-#include "../../HAL/Servo/Servo.h"
-#include "../UART_Telemetry/Telemetry.h"
 
-enum State { IDLE, RUNNING };
-enum State state = IDLE;
+void F1_Car_Init(F1_Car_Type* car) {
+    car->state = CAR_IDLE;
+    car->motorSpeed = 50; // Default 50%
+    car->isRunning = 0;
+}
 
-void F1_Car_Init(void) {}
-
-void F1_Car_Update(void) {
-    uint8_t cmd = UART_ReceiveByte(); // Assume non-blocking if needed
-    Telemetry_ParseCommand(cmd);
-    if (state == RUNNING) {
-        // Continue control
+void F1_Car_Start(F1_Car_Type* car) {
+    if(car->state == CAR_IDLE || car->state == CAR_STOPPED) {
+        car->state = CAR_RUNNING;
+        car->isRunning = 1;
     }
 }
 
-void F1_Car_Start(void) { state = RUNNING; }
-void F1_Car_Stop(void) { state = IDLE; Motor_SetSpeed(0); Servo_SetAngle(0); }
-void F1_Car_Reset(void) { F1_Car_Stop(); /* Reset odometry */ x = y = theta = 0; }
+void F1_Car_Stop(F1_Car_Type* car) {
+    car->state = CAR_STOPPED;
+    car->isRunning = 0;
+}
+
+void F1_Car_Reset(F1_Car_Type* car) {
+    car->state = CAR_IDLE;
+    car->motorSpeed = 50;
+    car->isRunning = 0;
+}
+
+void F1_Car_SetSpeed(F1_Car_Type* car, uint8_t speed) {
+    if(speed > 100) speed = 100;
+    car->motorSpeed = speed;
+}
+
+F1_Car_StateType F1_Car_GetState(F1_Car_Type* car) {
+    return car->state;
+}
