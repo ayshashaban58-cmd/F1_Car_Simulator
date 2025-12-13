@@ -1,34 +1,60 @@
-#include <avr/io.h>
-#include <avr/interrupt.h>
 #include "Timer.h"
 
-extern volatile uint32_t system_tick;
+volatile uint32_t systemTicks = 0;
 
-void Timer_Init(void) {
-    // Timer1 for 100Hz system tick (CTC mode, prescaler 256)
-    TCCR1A = 0;
-    TCCR1B = (1 << WGM12) | (1 << CS12);
-    OCR1A = 312; // 8MHz / 256 / 100 = 312.5 ~100Hz
-    TIMSK = (1 << OCIE1A);
-
-    // Timer0 for Motor PWM on PD6 (OC0)
-    TCCR0 = (1 << WGM00) | (1 << WGM01) | (1 << COM01) | (1 << CS01); // Fast PWM, prescaler 8
-    DDRD |= (1 << PD6);
-    OCR0 = 0;
-
-    // Timer1 Channel B for Servo PWM on PB2 (OC1B)
-    TCCR1A |= (1 << COM1B1) | (1 << WGM11);
-    TCCR1B |= (1 << WGM13) | (1 << WGM12) | (1 << CS11); // Fast PWM, ICR1 top, prescaler 8
-    ICR1 = 20000; // 20ms period for servo
-    DDRB |= (1 << PB2);
-    OCR1B = 1500; // Neutral
+// Timer0 for system tick (1ms interrupt)
+void Timer0_Init(void) {
+    // CTC mode, prescaler 64
+    TCCR0 = (1 << WGM01) | (1 << CS01) | (1 << CS00);
+    OCR0 = 124; // 8MHz/64/125 = 1kHz (1ms)
+    TIMSK |= (1 << OCIE0); // Enable compare match interrupt
 }
 
-void Timer_SetPWM(uint8_t channel, uint16_t duty) {
-    if (channel == 0) OCR0 = (uint8_t)duty; // Motor 0-255
-    if (channel == 1) OCR1B = duty; // Servo pulse width
+// Timer1 for PWM (Motor & Servo)
+void Timer1_Init_PWM(void) {
+    // Fast PWM, ICR1 as TOP, non-inverting mode
+    // OC1A = PD5 (Motor PWM), OC1B = PD4 (Servo PWM)
+    TCCR1A = (1 << COM1A1) | (1 << COM1B1) | (1 << WGM11);
+    TCCR1B = (1 << WGM13) | (1 << WGM12) | (1 << CS11); // Prescaler 8
+    ICR1 = 19999; // 20ms period for servo (8MHz/8/20000 = 50Hz)
+    OCR1A = 0; // Motor duty
+    OCR1B = 1500; // Servo center (1.5ms pulse)
 }
 
-uint32_t Timer_GetTick(void) {
-    return system_tick;
+// Timer2 for additional timing (optional)
+void Timer2_Init(void) {
+    // Normal mode, prescaler 64
+    TCCR2 = (1 << CS22);
+}
+
+void Timer_SetPWM(Timer_ChannelType channel, uint8_t duty) {
+    switch(channel) {
+        case TIMER1_CHANNELA: // Motor
+            OCR1A = (uint16_t)((duty * ICR1) / 100);
+            break;
+        case TIMER1_CHANNELB: // Servo (duty = 0-100, map to 1000-2000us)
+            // 0% = 1ms (1000), 50% = 1.5ms (1500), 100% = 2ms (2000)
+            OCR1B = 1000 + (duty * 10);
+            break;
+        default:
+            break;
+    }
+}
+
+uint32_t Timer_GetSystemTick(void) {
+    uint32_t ticks;
+    cli();
+    ticks = systemTicks;
+    sei();
+    return ticks;
+}
+
+void Timer_DelayMs(uint16_t ms) {
+    uint32_t start = Timer_GetSystemTick();
+    while((Timer_GetSystemTick() - start) < ms);
+}
+
+// Timer0 Compare Match ISR
+ISR(TIMER0_COMP_vect) {
+    systemTicks++;
 }
