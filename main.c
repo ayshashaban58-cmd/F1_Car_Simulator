@@ -1,8 +1,8 @@
 /*============================================================================
- * F1 Simulator - Main Application (IR Sensors Removed)
- * author : Aysha Shaban Galal (Modified)
+ * F1 Simulator - Main Application 
+ * author :
  * Date: Nov 2025
- * 100Hz Autonomous Racing Car - Without IR Markers
+ * 100Hz Autonomous Racing Car
  *===========================================================================*/
 #define F_CPU 8000000UL
 #include <avr/io.h>
