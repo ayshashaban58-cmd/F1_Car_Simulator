@@ -2,7 +2,6 @@
  * F1 Simulator - Main Application 
  * author :
  * Date: Nov 2025
- * 100Hz Autonomous Racing Car
  *===========================================================================*/
 #define F_CPU 8000000UL
 #include <avr/io.h>
